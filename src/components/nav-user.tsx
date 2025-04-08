@@ -1,12 +1,14 @@
 "use client"
 
+import { NavLink } from "react-router"
+import { useMemo } from "react"
+
 import {
   BadgeCheck,
   Bell,
   ChevronsUpDown,
   CreditCard,
   LogOut,
-  Sparkles,
 } from "lucide-react"
 
 import {
@@ -30,6 +32,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { getAddressName, shortenAddress } from "@/lib/address-utils";
 
 export function NavUser({
   user,
@@ -41,100 +44,6 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  // return (
-  //   <ConnectButton.Custom>
-  //     {({
-  //       account,
-  //       chain,
-  //       openAccountModal,
-  //       openChainModal,
-  //       openConnectModal,
-  //       authenticationStatus,
-  //       mounted,
-  //     }) => {
-  //       // Note: If your app doesn't use authentication, you
-  //       // can remove all 'authenticationStatus' checks
-  //       const ready = mounted && authenticationStatus !== 'loading';
-  //       const connected =
-  //         ready &&
-  //         account &&
-  //         chain &&
-  //         (!authenticationStatus ||
-  //           authenticationStatus === 'authenticated');
-
-  //       return (
-  //         <div
-  //           {...(!ready && {
-  //             'aria-hidden': true,
-  //             'style': {
-  //               opacity: 0,
-  //               pointerEvents: 'none',
-  //               userSelect: 'none',
-  //             },
-  //           })}
-  //         >
-  //           {(() => {
-  //             if (!connected) {
-  //               return (
-  //                 <button onClick={openConnectModal} type="button">
-  //                   Sign in
-  //                 </button>
-  //               );
-  //             }
-
-  //             if (chain.unsupported) {
-  //               return (
-  //                 <button onClick={openChainModal} type="button">
-  //                   Wrong network
-  //                 </button>
-  //               );
-  //             }
-
-  //             return (
-  //               <div>
-  //                 <button
-  //                   onClick={openChainModal}
-  //                   style={{ display: 'flex', alignItems: 'center' }}
-  //                   type="button"
-  //                 >
-  //                   {chain.hasIcon && (
-  //                     <div
-  //                       style={{
-  //                         background: chain.iconBackground,
-  //                         width: 12,
-  //                         height: 12,
-  //                         borderRadius: 999,
-  //                         overflow: 'hidden',
-  //                         marginRight: 4,
-  //                       }}
-  //                     >
-  //                       {chain.iconUrl && (
-  //                         <img
-  //                           alt={chain.name ?? 'Chain icon'}
-  //                           src={chain.iconUrl}
-  //                           style={{ width: 12, height: 12 }}
-  //                         />
-  //                       )}
-  //                     </div>
-  //                   )}
-  //                   {chain.name}
-  //                 </button>
-
-  //                 <button onClick={openAccountModal} type="button">
-  //                   {account.displayName}
-  //                   {account.displayBalance
-  //                     ? ` (${account.displayBalance})`
-  //                     : ''}
-  //                 </button>
-  //               </div>
-  //             );
-  //           })()}
-  //         </div>
-  //       );
-  //     }}
-  //   </ConnectButton.Custom>
-
-  // )
   return (
     <ConnectButton.Custom>
       {({
@@ -153,6 +62,20 @@ export function NavUser({
           chain &&
           (!authenticationStatus ||
             authenticationStatus === 'authenticated');
+        
+        // Generate a friendly name if ENS is not available
+        const displayName = useMemo(() => {
+          if (!connected || !account) return 'Connect Wallet';
+          
+          // If ENS name exists, use it
+          // if (account.displayName && account.displayName !== account.address) {
+          //   return account.displayName;
+          // }
+          
+          // Otherwise generate a friendly name from the address
+          return getAddressName(account.address);
+        }, [connected, account]);
+        
         return (
           <div
             {...(!ready && {
@@ -167,9 +90,28 @@ export function NavUser({
             {(() => {
               if (!connected) {
                 return (
-                  <button onClick={openConnectModal} type="button">
-                    Sign in
-                  </button>
+                  <SidebarMenu>
+                  <SidebarMenuItem>
+                  <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                    size="lg"
+                    onClick={openConnectModal}
+                    type="button"
+                    >
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarFallback className="rounded-lg">
+                      <CreditCard className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-medium">Connect Wallet</span>
+                    </div>
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  </DropdownMenu>
+                  </SidebarMenuItem>
+                  </SidebarMenu>
                 );
               }
               return (
@@ -182,7 +124,7 @@ export function NavUser({
                         className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                       >
                         <Avatar className="h-8 w-8 rounded-lg">
-                          <AvatarImage src={account.ensAvatar} alt={account.displayName} />
+                          <AvatarImage src={account.ensAvatar} alt={displayName} />
                           <AvatarFallback className="rounded-lg">
                             <img
                               alt={chain.name ?? 'Chain icon'}
@@ -192,8 +134,10 @@ export function NavUser({
                           </AvatarFallback>
                         </Avatar>
                         <div className="grid flex-1 text-left text-sm leading-tight">
-                          <span className="truncate font-medium">{account.displayName}</span>
-                          {/* <span className="truncate text-xs">{user.email}</span> */}
+                          <span className="truncate font-medium">{displayName}</span>
+                          <span className="truncate text-xs text-muted-foreground">
+                            {shortenAddress(account.address)}
+                          </span>
                         </div>
                         <ChevronsUpDown className="ml-auto size-4" />
                       </SidebarMenuButton>
@@ -207,7 +151,7 @@ export function NavUser({
                       <DropdownMenuLabel className="p-0 font-normal">
                         <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                           <Avatar className="h-8 w-8 rounded-lg">
-                            <AvatarImage src={user.avatar} alt={account.displayName} />
+                            <AvatarImage src={user.avatar} alt={displayName} />
                             <AvatarFallback className="rounded-lg">
                               <img
                                 alt={chain.name ?? 'Chain icon'}
@@ -217,8 +161,10 @@ export function NavUser({
                             </AvatarFallback>
                           </Avatar>
                           <div className="grid flex-1 text-left text-sm leading-tight">
-                            <span className="truncate font-medium">{account.displayName}</span>
-                            {/* <span className="truncate text-xs">{user.email}</span> */}
+                            <span className="truncate font-medium">{displayName}</span>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {shortenAddress(account.address)}
+                            </span>
                           </div>
                         </div>
                       </DropdownMenuLabel>
@@ -231,14 +177,16 @@ export function NavUser({
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator /> */}
                       <DropdownMenuGroup>
-                        <DropdownMenuItem>
-                          <BadgeCheck />
+                        <DropdownMenuItem asChild>
+                          <NavLink to="/account">
+                          <BadgeCheck className="h-4 w-4" />
                           Account
+                          </NavLink>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        {/* <DropdownMenuItem>
                           <CreditCard />
                           Billing
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                         <DropdownMenuItem>
                           <Bell />
                           Notifications
@@ -246,7 +194,7 @@ export function NavUser({
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem>
-                        <LogOut />
+                        <LogOut className="mr-2 h-4 w-4" />
                         <button onClick={openAccountModal} type="button">
                           Logout
                         </button>
