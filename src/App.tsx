@@ -8,39 +8,88 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
 import { config } from './config'
+
+import { Toaster } from "@/components/ui/sonner"
+
+
+import { Outlet, createHashRouter, RouterProvider, Navigate } from 'react-router'
+
+import Explorer from './app/Explorer/Explorer'
+import Account from './app/Account/Account'
+
+
+import Dashboard from "./app/Dashboard/Dashboard"
+import { SubscriptionsProvider } from "./contexts/subscriptions"
+import { EthosProvider } from './contexts/ethos';
+
 import '@rainbow-me/rainbowkit/styles.css';
 import './App.css'
-
-
-import data from "./app/dashboard/data.json"
+import { useEffect } from "react"
+import Digest from "./app/Digest/digest"
 
 const queryClient = new QueryClient()
 
-function App() {
-
+function Layout() {
   return (
-    <WagmiProvider config={config}>
-    <QueryClientProvider client={queryClient}>
-    <RainbowKitProvider>
     <SidebarProvider>
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <SectionCards />
-              <div className="px-4 lg:px-6">
-                <ChartAreaInteractive />
-              </div>
-              <DataTable data={data} />
-            </div>
-          </div>
+          <Outlet />
         </div>
       </SidebarInset>
     </SidebarProvider>
-    </RainbowKitProvider>
-    </QueryClientProvider>
+  )
+}
+
+const router = createHashRouter([
+  {
+    path: "/",
+    element: <Layout />,
+    children: [
+      {
+        index: true, // This makes it the default route for "/"
+        element: <Navigate to="/explorer" replace /> // Redirect to explorer
+      },
+      {
+        path: "dao/:identifier",
+        element: <Dashboard />
+      },
+      {
+        path: "explorer",
+        element: <Explorer />
+      },
+      // Update Digest route to support tab parameters
+      {
+        path: "digest",
+        element: <Navigate to="/digest/global" replace />
+      },
+      {
+        path: "digest/:tabType",
+        element: <Digest />
+      },
+      {
+        path: "account",
+        element: <Account />
+      }
+    ]
+  }
+])
+
+function App() {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider>
+          <SubscriptionsProvider>
+            <EthosProvider>
+              <RouterProvider router={router} />
+              <Toaster />
+            </EthosProvider>
+          </SubscriptionsProvider>
+        </RainbowKitProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   )
 }
