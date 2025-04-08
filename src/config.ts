@@ -11,7 +11,7 @@ import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 // })
 
 export const config = getDefaultConfig({
-    appName: 'Delegate',
+    appName: 'Davos',
     projectId: 'baac4104fc8693f7b3fd30570968a04c',
     chains: [mainnet, sepolia]
   });

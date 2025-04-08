@@ -24,9 +24,9 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ChartEngagement({activeUsers, angle}: any) {
+export function ChartEngagement({medianTimePerProposal, angle}: any) {
     const chartData = [
-        { browser: "safari", visitors: activeUsers, fill: "var(--color-safari)" },
+        { browser: "safari", visitors: medianTimePerProposal, fill: "var(--color-safari)" },
       ]
   return (
     <CardContent className="flex-1 pb-0">
@@ -71,7 +71,7 @@ export function ChartEngagement({activeUsers, angle}: any) {
                                 y={(viewBox.cy || 0) + 24}
                                 className="fill-muted-foreground"
                             >
-                                Active Users
+                                Mins per proposal
                             </tspan>
                             </text>
                         )

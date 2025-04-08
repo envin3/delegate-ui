@@ -3,6 +3,7 @@ import {
   Forward,
   MoreHorizontal,
   Trash2,
+  Plus,
   type LucideIcon,
 } from "lucide-react"
 
@@ -22,6 +23,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { NavLink } from "react-router"
+import { useSubscriptions } from "@/contexts/subscriptions"
+import { useCallback, useEffect, useState } from "react"
 
 export function NavProjects({
   projects,
@@ -33,52 +37,86 @@ export function NavProjects({
   }[]
 }) {
   const { isMobile } = useSidebar()
+  const { subscriptions } = useSubscriptions()
+  const [currentPath, setCurrentPath] = useState(() => window.location.hash.substring(1))
+
+  // Create a memoized update function
+  const updateCurrentPath = useCallback(() => {
+    setCurrentPath(window.location.hash.substring(1))
+  }, [])
+
+  // Update the current path when location changes
+  useEffect(() => {
+    // Set initial path (in case it wasn't set in useState)
+    updateCurrentPath()
+
+    // Add event listener for hash changes
+    window.addEventListener('hashchange', updateCurrentPath)
+
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('hashchange', updateCurrentPath)
+    }
+  }, [updateCurrentPath])
+
+  // Force a re-render when navigating
+  useEffect(() => {
+    const originalPushState = window.history.pushState
+    const originalReplaceState = window.history.replaceState
+
+    // Override pushState
+    window.history.pushState = function() {
+      originalPushState.apply(this, arguments as any)
+      updateCurrentPath()
+    }
+
+    // Override replaceState
+    window.history.replaceState = function() {
+      originalReplaceState.apply(this, arguments as any)
+      updateCurrentPath()
+    }
+
+    // Restore original functions on cleanup
+    return () => {
+      window.history.pushState = originalPushState
+      window.history.replaceState = originalReplaceState
+    }
+  }, [updateCurrentPath])
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Projects</SidebarGroupLabel>
+      <SidebarGroupLabel>Subscriptions</SidebarGroupLabel>
       <SidebarMenu>
-        {projects.map((item) => (
-          <SidebarMenuItem key={item.name}>
+        {subscriptions.map((item) => {
+        const targetPath = `/dao/${item.dao.identifier}`
+        const isActive = currentPath === targetPath
+        return (
+          <SidebarMenuItem key={item.dao.name}>
             <SidebarMenuButton asChild>
-              <a href={item.url}>
-                <item.icon />
-                <span>{item.name}</span>
-              </a>
-            </SidebarMenuButton>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuAction showOnHover>
-                  <MoreHorizontal />
-                  <span className="sr-only">More</span>
-                </SidebarMenuAction>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-48 rounded-lg"
-                side={isMobile ? "bottom" : "right"}
-                align={isMobile ? "end" : "start"}
+              <NavLink 
+                key={item.dao.identifier} 
+                to={`/dao/${item.dao.identifier}`}
+                className={isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""}
               >
-                <DropdownMenuItem>
-                  <Folder className="text-muted-foreground" />
-                  <span>View Project</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Forward className="text-muted-foreground" />
-                  <span>Share Project</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Trash2 className="text-muted-foreground" />
-                  <span>Delete Project</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                {item.dao.logo ? (
+                  <img
+                    src={item.dao.logo}
+                    className="h-4 w-4 rounded-full"
+                  />
+                ) : (
+                  <Forward />
+                )}
+                <span>{item.dao.name}</span>
+              </NavLink>
+            </SidebarMenuButton>
           </SidebarMenuItem>
-        ))}
+        )})}
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
-            <MoreHorizontal className="text-sidebar-foreground/70" />
-            <span>More</span>
+            <Plus className="text-sidebar-foreground/70" />
+            <NavLink to="/explorer">
+              <span>Subscribe</span>
+            </NavLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

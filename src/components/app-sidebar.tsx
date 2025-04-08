@@ -5,12 +5,22 @@ import {
   Bell,
   Frame,
   GalleryVerticalEnd,
-  Gamepad2,
   Map,
   PieChart,
   Settings2,
-  Telescope
+  Telescope,
+  Gamepad2Icon,
+  TrendingUpDown,
+  Library,
+  SettingsIcon,
+  HelpCircleIcon,
+  SearchIcon,
+  MountainSnow,
+  Mountain,
 } from "lucide-react"
+import {
+  SidebarMenuButton,
+} from "@/components/ui/sidebar"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -23,6 +33,9 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { NavLink } from "react-router"
+import { NavSecondary } from "./nav-secondary"
+import { useAccount } from "wagmi"
 
 // This is sample data.
 const data = {
@@ -33,12 +46,7 @@ const data = {
   },
   teams: [
     {
-      name: "DeleGate",
-      logo: Gamepad2,
-      plan: "",
-    },
-    {
-      name: "Arbitrum DAO",
+      name: "",
       logo: GalleryVerticalEnd,
       plan: "Snapshot",
     },
@@ -51,18 +59,18 @@ const data = {
   navMain: [
     {
       title: "Explorer",
-      url: "#",
+      url: "/explorer",
       icon: Telescope,
       isActive: false,
     },
     {
-      title: "Notification",
-      url: "#",
-      icon: Bell
+      title: "Trends",
+      url: "/trends",
+      icon: TrendingUpDown,
     },
     {
       title: "Digest",
-      url: "#",
+      url: "/digest",
       icon: BookOpen,
       items: [
         {
@@ -83,58 +91,99 @@ const data = {
         },
       ],
     },
+    // {
+    //   title: "KnowledgeBase",
+    //   url: "#",
+    //   icon: Library,
+    // },
+    // {
+    //   title: "Settings",
+    //   url: "#",
+    //   icon: Settings2,
+    //   items: [
+    //     {
+    //       title: "General",
+    //       url: "#",
+    //     },
+    //     {
+    //       title: "Team",
+    //       url: "#",
+    //     },
+    //     {
+    //       title: "Billing",
+    //       url: "#",
+    //     },
+    //     {
+    //       title: "Limits",
+    //       url: "#",
+    //     },
+    //   ],
+    // },
+  ],
+  navSecondary: [
     {
       title: "Settings",
       url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
+      icon: SettingsIcon,
+    },
+    {
+      title: "Get Help",
+      url: "#",
+      icon: HelpCircleIcon,
+    },
+    {
+      title: "Search",
+      url: "#",
+      icon: SearchIcon,
     },
   ],
   projects: [
     {
-      name: "Design Engineering",
+      name: "Arbitrum DAO",
       url: "#",
       icon: Frame,
     },
     {
-      name: "Sales & Marketing",
+      name: "Aave",
       url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      icon: Frame,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const account = useAccount()
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
+        <SidebarMenuButton
+          size="lg"
+          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+        > 
+          {/* <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg"> */}
+          <NavLink to="/explorer">
+            <Mountain className="size-8" />
+            </NavLink>
+          {/* </div> */}
+          <div className="grid flex-1 text-left text-2xl leading-tight">
+          <NavLink to="/explorer">
+            <span className="truncate font-semibold">Davos</span>
+            {/* <span className="truncate text-xs">{activeTeam.plan}</span> */}
+            </NavLink>
+          </div>
+          
+          {/* <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" /> */}
+              
+        </SidebarMenuButton>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        {/* Only show Actions column if account is connected */}
+        {account.address ? (
+          <NavProjects projects={data.projects} />
+        ): null}
+        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
