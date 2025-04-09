@@ -5,6 +5,17 @@ import balancerLogo from "/balancer-bal-logo.svg"
 import lidoLogo from "/lido-dao-ldo-logo.svg"
 import uniswapLogo from "/uniswap-uni-logo.svg"
 
+// Snapshot GraphQL API endpoint
+export const SNAPSHOT_API_URL = 'https://hub.snapshot.org/graphql'
+export const STALE_TIME = 5 * 60 * 1000; // 30 minutes
+export const GC_TIME = 24 * 60 * 60 * 1000; // 24 hours
+export const PROPOSAL_FETCH_LIMIT_ALL = 2000; // Limit to 200 proposals
+
+export const MONTHLY_REPORT_DIRECTIVE = 'Based on the following information, provide a concise summary (max 15 sentences) of the current state for non technical people and focus of the following DAO. Provide, if possible, a list of the most important topics that are being discussed in the DAO.'
+export const GLOBAL_REPORT_DIRECTIVE = 'Based on the following information, provide a concise summary (max 30 sentences) of the current DAO for non technical people. What is it about, why was it created, when was it created? Provide a reason why the user would want to join this DAO.';
+export const PROPROSAL_DIRECTIVE = 'Provide a concise summary (max 5 sentences) of the provided proposal. Include the most important points and a summary of the proposal. Provide a reason why the user would want to vote for or against this proposal.';
+export const FILTERED_PROPOSAL_DIRECTIVE = 'Based on the following information, provide a concise summary (max 5 sentences) of the provided proposals. Include the most important points and a summary of the proposal. Give a point for each proposal.'; 
+
 export interface DaoConfigItem {
     name: string;
     logo: string;
@@ -20,7 +31,7 @@ export const daoConfig: Record<string, DaoConfigItem> = {
       name: 'Aave',
       logo: aaveLogo,
       source: 'snapshot',
-      identifier: 'aave.eth',
+      identifier: 'aavedao.eth',
       totalMembers: 184598,
       proposals: 364,
       votes: 5.6,

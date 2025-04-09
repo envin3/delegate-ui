@@ -1,24 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { SectionCards } from "@/components/section-cards";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, Globe, Twitter, ExternalLink, CreditCard, Mountain, FileSymlink } from "lucide-react";
+import { Bell, BellOff, ExternalLink, Mountain, FileSymlink } from "lucide-react";
 import { useSubscriptions } from '@/contexts/subscriptions';
-import { daoConfig, DaoConfigItem, PROPOSALS_QUERY, SPACE_QUERY } from "@/lib/constants";
+import { daoConfig, DaoConfigItem, MONTHLY_REPORT_DIRECTIVE, PROPOSALS_QUERY, SPACE_QUERY } from "@/lib/constants";
 import { toast } from "sonner";
-import { DataTable } from "@/components/data-table";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-
-import dataw from "./data.json"
-import { fetchDaoInfo, fetchGraphQL } from "@/lib/dao-utils";
 import { DrawerDialog } from "../Delegate/delegate";
 import { formatNumber } from "@/lib/utils";
 import { useAccount } from "wagmi";
-import { parseQuery } from "@/lib/delegate-query";
 import { Skeleton } from "@/components/ui/skeleton"
+import { useDaoInfo, useGraphQL } from "@/hooks/use-dao";
+import { useAI } from "@/hooks/use-ai";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { filterProposalsByAge } from "@/lib/dao-utils";
 
 function DaoDashboard() {
   const { identifier } = useParams<{ identifier: string }>();
@@ -52,86 +57,69 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
   } = useSubscriptions();
   const subscribed = isSubscribed(dao);
   const account = useAccount();
-  const [daoProposals, setDaoProposals] = useState<Record<string, any> | null>(null);
-
-  const [spaceData, setSpaceData] = useState<any>(null);
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Add these new state variables
-  const [daoSummary, setDaoSummary] = useState<string>("");
-  const [loadingSummary, setLoadingSummary] = useState(false);
   const [insightExpanded, setInsightExpanded] = useState(false);
+  
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const proposalsPerPage = 10;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        // Fetch space data
-        const spaceResult = await fetchGraphQL(SPACE_QUERY, { id: dao.identifier });
-        setSpaceData(spaceResult.space);
-        
-        // Fetch proposals
-        const proposalsResult = await fetchGraphQL(PROPOSALS_QUERY, { 
-          space: dao.identifier,
-          limit: 10 // Limit to 10 proposals
-        });
-        setProposals(proposalsResult.proposals);
-      } catch (err) {
-        console.error('Error fetching DAO data:', err);
-        setError('Failed to load DAO data. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [dao.identifier]);
+  const { 
+    data: daoData,
+    isLoading: isDaoDataLoading,
+    error: daoDataError 
+  } = useDaoInfo(dao.source, dao.identifier);
+  const { 
+    data: spaceResult,
+    isLoading: isSpaceLoading,
+    error: spaceError 
+  } = useGraphQL(SPACE_QUERY, { id: dao.identifier });
+  const { 
+    data: proposalsResult,
+    isLoading: isProposalsLoading,
+    error: proposalsError 
+  } = useGraphQL(PROPOSALS_QUERY, { 
+    space: dao.identifier,
+    limit: spaceResult?.space?.proposalsCount,
+  });
 
-  useEffect(() => {
-    const loadData = async () => {        
-      const data = await fetchDaoInfo(dao?.source, dao?.identifier);
-      setDaoProposals(data);
-    };
-    
-    loadData();
-  }, []);
+  // Extract data from query results
+  const spaceData = spaceResult?.space;
+  const proposals = proposalsResult?.proposals || [];
+  
+  // Combine loading and error states
+  const isLoading = isSpaceLoading || isProposalsLoading || isDaoDataLoading;
+  const error = spaceError || proposalsError || daoDataError;
 
-  // Add this useEffect to fetch the summary when proposals load
-  useEffect(() => {
-    const generateDaoSummary = async () => {
-      if (!isLoading && !error && proposals.length > 0) {
-        setLoadingSummary(true);
-        try {
-          // Get the latest proposal
-          const latestProposal = proposals[0]; 
-          
-          // Format prompt for the DAO summary
-          const prompt = `Based on the following information, provide a concise summary (max 3 sentences) of the current state for non technical people and focus of the ${dao.name} DAO:
-          
-          Latest proposal: "${latestProposal.title}"
-          Proposal state: ${latestProposal.state}
-          Total proposals: ${spaceData?.proposalsCount || dao.proposals || 0}
-          Number of followers: ${spaceData?.followersCount || dao.totalMembers || 0}
-          Total votes: ${spaceData?.votesCount || dao.votes || 0}`;
-          
-          // Use parseQuery to get AI-generated summary
-          const response = await parseQuery(prompt, latestProposal.body);
-          setDaoSummary(response);
-        } catch (error) {
-          console.error("Error generating DAO summary:", error);
-          setDaoSummary("Unable to generate DAO summary at this time.");
-        } finally {
-          setLoadingSummary(false);
-        }
-      }
-    };
+  // Process the most recent proposals for the AI summary
+  const latestProposals = useMemo(() => {
+    return !isLoading && !error && proposals.length > 0
+      ? filterProposalsByAge(proposals, 30)
+      : [];
+  }, [proposals, isLoading, error]);
+  
+  // Create the prompt for the AI summary
+  const prompt = useMemo(() => {
+    if (latestProposals.length === 0) return '';
     
-    generateDaoSummary();
-  }, [isLoading, error, proposals, dao, spaceData]);
+    // Create a concatenated string of all latest proposal titles and short body excerpts
+    const proposalSummaries = latestProposals
+      .map(p => `BEGIN "${p.title}" - ${p.body} END`)
+      .join('\n');
+    
+    return `Recent proposals: ${proposalSummaries}`;
+  }, [latestProposals, dao, spaceData]);
+
+  // Use the AI hook to generate the summary
+  const { 
+    data: daoSummary, 
+    isLoading: loadingSummary, 
+    error: summaryError 
+  } = useAI(MONTHLY_REPORT_DIRECTIVE, prompt, dao.name, {
+    // Only enable when we have a prompt and context
+    enabled: prompt !== '',
+    // Use a longer stale time for summaries (30 min)
+    staleTime: 30 * 60 * 1000
+  });
 
   const handleSubscription = () => {
     if (subscribed) {
@@ -147,6 +135,7 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
     }
   };
 
+  // Process all proposals into table data
   const proposalTableData = proposals.map(proposal => ({
     id: proposal.id,
     title: proposal.title,
@@ -158,9 +147,81 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
     score: proposal.scores_total.toFixed(2)
   }));
   
+  // Add pagination logic
+  const totalPages = Math.max(1, Math.ceil(proposalTableData.length / proposalsPerPage));
+  
+  // Ensure current page is within bounds if data changes
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [proposalTableData.length, totalPages, currentPage]);
+  
+  // Get current page proposals
+  const indexOfLastProposal = currentPage * proposalsPerPage;
+  const indexOfFirstProposal = indexOfLastProposal - proposalsPerPage;
+  const currentProposals = proposalTableData.slice(indexOfFirstProposal, indexOfLastProposal);
+  
+  // Handle page changes
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top of table
+    document.querySelector('.overflow-x-auto')?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  // Generate array of page numbers to display
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5; // Show at most 5 page numbers
+    
+    if (totalPages <= maxPagesToShow) {
+      // Show all pages if there are 5 or fewer
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // Always include page 1
+      pageNumbers.push(1);
+      
+      // Calculate start and end of page numbers to show
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Adjust if at the start or end
+      if (currentPage <= 2) {
+        endPage = 3;
+      } else if (currentPage >= totalPages - 1) {
+        startPage = totalPages - 2;
+      }
+      
+      // Add ellipsis after page 1 if needed
+      if (startPage > 2) {
+        pageNumbers.push('ellipsis');
+      }
+      
+      // Add the range of page numbers
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+      
+      // Add ellipsis before the last page if needed
+      if (endPage < totalPages - 1) {
+        pageNumbers.push('ellipsis');
+      }
+      
+      // Always include the last page
+      if (totalPages > 1) {
+        pageNumbers.push(totalPages);
+      }
+    }
+    
+    return pageNumbers;
+  };
+  
   return (
     <div className="@container/main flex flex-1 flex-col gap-2">
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+        {/* Header Card */}
         <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6">
           <Card className="@container/card">
             <CardHeader>
@@ -229,7 +290,7 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
               </CardTitle>
             </CardHeader>
             <CardFooter className="flex-col items-start gap-3 text-sm">
-              {isLoading ? (
+            {isLoading ? (
                 <div>Loading data...</div>
               ) : error ? (
                 <div className="text-red-500">{error}</div>
@@ -265,107 +326,120 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                     )}
                   </div>
                   
-                  {/* Right column - DAO Insight styled as a card */}
-                  <div className="md:w-3/4">
-                    <Card className="border shadow-sm gap-0 pt-4 pb-3 bg-muted/5">
+                  {/* Right column - DAO About section */}
+                  {spaceData?.about && (
+                    <div className="md:w-3/4">
+                      <Card className="border shadow-sm gap-0 pt-4 pb-3 bg-muted/5">
                       <CardHeader className="pb-0">
-                        <CardAction>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-xs h-6 px-2 flex items-center gap-1"
-                            asChild
-                          >
-                            <a href={`/#/digest/global?dao=${dao.name.toLowerCase()}`} target="_blank" rel="noopener noreferrer">
-                              <FileSymlink className="h-3 w-3" />
-                              Full Digest
-                            </a>
-                          </Button>
-                        </CardAction>
                         <CardTitle className="text-sm flex items-center">
-                          <span className="bg-primary/10 p-1 rounded-md mr-2 flex items-center justify-center">
-                            <Mountain className="h-4 w-4 text-primary" />
-                          </span>
-                          DAO Insight
+                        About
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        {loadingSummary ? (
-                          <div className="flex items-center justify-center py-4">
-                            <Skeleton className="w-[300px] h-[20px] rounded-full" />
-                          </div>
-                        ) : daoSummary ? (
-                          <div className="relative">
-                            {/* Content container with line clamp instead of max-height */}
-                            <div className={insightExpanded ? "text-sm leading-relaxed" : "text-sm leading-relaxed line-clamp-1"}>
-                              {daoSummary}
-                            </div>
-                            
-                            {/* Gradient overlay when collapsed - positioned relative to text */}
-                            {!insightExpanded && (
-                              <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none" />
-                            )}
-                            
-                            {/* Footer with Show more/less button - different layout based on expanded state */}
-                            <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-                              {/* Only show the attribution when expanded */}
-                              {insightExpanded && (
-                                <span>Based on {proposals.length} recent proposals</span>
-                              )}
-                              
-                              {/* Push button to right when collapsed, or position in normal flow when expanded */}
-                              <div className={insightExpanded ? "" : "ml-auto"}>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => setInsightExpanded(!insightExpanded)}
-                                  className="text-xs h-6 px-2"
-                                >
-                                  {insightExpanded ? "Show less" : "Show more"}
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-muted-foreground text-sm py-2">
-                            No information available to generate insights.
-                          </div>
-                        )}
+                        {spaceData.about}
                       </CardContent>
-                    </Card>
-                  </div>
+                      </Card>
+                    </div>
+                  )}
                 </div>
               )}
             </CardFooter>
           </Card>
         </div>
         
-        {/* Show space about information if available */}
-        {/* {spaceData?.about && ( */}
-          <div className="px-4 lg:px-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Monthly Digest</CardTitle>
-              </CardHeader>
-              <CardContent className="prose prose-sm dark:prose-invert max-w-none">
-                {/* <div dangerouslySetInnerHTML={{ __html: spaceData.about }} /> */}
-              </CardContent>
-            </Card>
-          </div>
-        {/* )} */}
+        {/* Monthly Digest Card */}
+        <div className="px-4 lg:px-6">
+        <Card className="border shadow-sm gap-0 pt-4 pb-3 bg-muted/5">
+          <CardHeader className="pb-0">
+            <CardAction>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-6 px-2 flex items-center gap-1"
+                asChild
+              >
+                <a href={`/#/digest/overview?dao=${dao.name.toLowerCase()}`} target="_blank" rel="noopener noreferrer">
+                  <FileSymlink className="h-3 w-3" />
+                  Full Digest
+                </a>
+              </Button>
+            </CardAction>
+            <CardTitle className="text-sm flex items-center">
+              <span className="bg-primary/10 p-1 rounded-md mr-2 flex items-center justify-center">
+                <Mountain className="h-4 w-4 text-primary" />
+              </span>
+              DAO Monthly Digest
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {loadingSummary ? (
+              <div className="flex items-center justify-center py-4">
+                <Skeleton className="w-[300px] h-[20px] rounded-full" />
+              </div>
+            ) : daoSummary ? (
+              <div className="relative">
+                {/* Content container with line clamp instead of max-height */}
+                <div className={insightExpanded ? "text-sm leading-relaxed" : "text-sm leading-relaxed line-clamp-1"}>
+                  {/* <div 
+                    className={insightExpanded ? "text-sm leading-relaxed" : "text-sm leading-relaxed line-clamp-1"}
+                    dangerouslySetInnerHTML={{ __html: daoSummary }}
+                  /> */}
+                  {daoSummary}
+                </div>
+                
+                {/* Gradient overlay when collapsed - positioned relative to text */}
+                {!insightExpanded && (
+                  <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none" />
+                )}
+                
+                {/* Footer with Show more/less button - different layout based on expanded state */}
+                <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
+                  {/* Only show the attribution when expanded */}
+                  {insightExpanded && (
+                    <span>Based on last month {latestProposals.length} new proposals</span>
+                  )}
+                  
+                  {/* Push button to right when collapsed, or position in normal flow when expanded */}
+                  <div className={insightExpanded ? "" : "ml-auto"}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setInsightExpanded(!insightExpanded)}
+                      className="text-xs h-6 px-2"
+                    >
+                      {insightExpanded ? "Show less" : "Show more"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-sm py-2">
+                No information available to generate insights regarding last month.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        </div>
         
-        {/* Proposals Table */}
+        {/* Proposals Table with Pagination */}
         <div className="px-4 lg:px-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Proposals</CardTitle>
+              <CardTitle className="flex justify-between">
+                <span>Recent Proposals</span>
+                {!isLoading && !error && proposalTableData.length > 0 && (
+                  <Badge variant="outline">
+                    {proposalTableData.length} proposals total
+                  </Badge>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
                 {isLoading ? (
                 <div>Loading proposals...</div>
                 ) : error ? (
                 <div className="text-red-500">{error}</div>
-                ) : proposals.length === 0 ? (
+                ) : proposalTableData.length === 0 ? (
                 <div>No proposals found</div>
                 ) : (
                 <div className="overflow-x-auto">
@@ -384,7 +458,7 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {proposalTableData.map((proposal) => (
+                    {currentProposals.map((proposal) => (
                     <tr key={proposal.id} className="border-b hover:bg-muted/50">
                         <td className="p-2">
                         {proposal.state.toLowerCase() === 'active' ? (
@@ -418,6 +492,50 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                     ))}
                   </tbody>
                   </table>
+                  
+                  {/* Shadcn Pagination Component */}
+                  {proposalTableData.length > proposalsPerPage && (
+                    <div className="mt-4">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious 
+                              onClick={() => handlePageChange(currentPage - 1)}
+                              className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                            />
+                          </PaginationItem>
+                          
+                          {getPageNumbers().map((page, index) => (
+                            page === 'ellipsis' ? (
+                              <PaginationItem key={`ellipsis-${index}`}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            ) : (
+                              <PaginationItem key={`page-${page}`}>
+                                <PaginationLink 
+                                  isActive={page === currentPage}
+                                  onClick={() => handlePageChange(page as number)}
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            )
+                          ))}
+                          
+                          <PaginationItem>
+                            <PaginationNext 
+                              onClick={() => handlePageChange(currentPage + 1)}
+                              className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                      
+                      {/* <div className="text-center text-xs text-muted-foreground mt-2">
+                        Showing {indexOfFirstProposal + 1} to {Math.min(indexOfLastProposal, proposalTableData.length)} of {proposalTableData.length} proposals
+                      </div> */}
+                    </div>
+                  )}
                 </div>
                 )}
             </CardContent>

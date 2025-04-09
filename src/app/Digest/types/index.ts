@@ -1,4 +1,4 @@
-export type DigestPeriod = "updates" | "proposals" | "global";
+export type DigestPeriod = "overview" | "monthly" | "proposals";
 
 export interface DigestItem {
   id: string;

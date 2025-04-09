@@ -1,11 +1,7 @@
 import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
 import { config } from './config'
 
@@ -24,10 +20,9 @@ import { EthosProvider } from './contexts/ethos';
 
 import '@rainbow-me/rainbowkit/styles.css';
 import './App.css'
-import { useEffect } from "react"
-import Digest from "./app/Digest/digest"
+// import { Digest } from "./app/Digest2/Digest"
+import Digest from "./app/Digest/Digest"
 
-const queryClient = new QueryClient()
 
 function Layout() {
   return (
@@ -63,7 +58,7 @@ const router = createHashRouter([
       // Update Digest route to support tab parameters
       {
         path: "digest",
-        element: <Navigate to="/digest/global" replace />
+        element: <Navigate to="/digest/overview" replace />
       },
       {
         path: "digest/:tabType",
@@ -80,7 +75,6 @@ const router = createHashRouter([
 function App() {
   return (
     <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
           <SubscriptionsProvider>
             <EthosProvider>
@@ -89,7 +83,6 @@ function App() {
             </EthosProvider>
           </SubscriptionsProvider>
         </RainbowKitProvider>
-      </QueryClientProvider>
     </WagmiProvider>
   )
 }

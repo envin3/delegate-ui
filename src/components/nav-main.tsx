@@ -122,7 +122,7 @@ export function NavMain({
                   {item.icon && <item.icon />}
                     {/* <button href="dashboard" className="flex items-center"> */}
                     {item.title === "Digest" ? (
-                      <NavLink to="/digest/global">
+                      <NavLink to="/digest/overview">
                         {item.title}
                       </NavLink>
                     ) : (

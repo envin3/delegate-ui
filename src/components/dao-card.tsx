@@ -7,98 +7,81 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { Github, Twitter, Zap } from "lucide-react"
-import { ChartEngagement } from "./chart-engagement"
-import { ChartProps } from "./char-properties";
-import { NavLink } from "react-router";
-import { formatNumber } from "@/lib/utils";
-import { useEffect, useState } from "react";
-import { fetchGraphQL } from "@/lib/dao-utils";
-import { PROPOSALS_QUERY, SPACE_QUERY } from "@/lib/constants";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Github, Twitter, Zap } from "lucide-react"
+import { ChartProps } from "./char-properties";
+import { NavLink } from "react-router";
+import { formatNumber } from "@/lib/utils";
+import { PROPOSALS_QUERY, SPACE_QUERY } from "@/lib/constants";
+import { useDaoInfo, useGraphQL } from "@/hooks/use-dao";
+import { useMemo } from "react";
+import { formatMinutesToTime, parseTimeToMinutes } from "@/lib/dao-utils";
 
 interface DaoCardProps {
     dao: any;
     logo: any;
-    daoData: any;
-  }
-
-// Convert time string in format "HH:MM" or "MM" to minutes
-const parseTimeToMinutes = (timeStr: string | number): number => {
-  if (typeof timeStr === 'number') return timeStr;
-  if (typeof timeStr === 'string' && timeStr.includes(':')) {
-    const parts = timeStr.split(':');
-    return parts.length === 2
-      ? parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10)
-      : parseInt(parts[1], 10);
-  }
-  return 0;
-};
-
-// Convert minutes to "HH:MM" format
-const formatMinutesToTime = (minutes: number): string => {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-};
+}
   
-export function DaoCard({ dao, logo, daoData }: DaoCardProps) {
-    const [spaceData, setSpaceData] = useState<any>(null);
-    const [proposals, setProposals] = useState<any[]>([]);
-    const [activeProposals, setActiveProposals] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+export function DaoCard({ dao, logo }: DaoCardProps) {
+    const { 
+      data: daoData,
+      isLoading: isDaoDataLoading,
+      error: daoDataError 
+    } = useDaoInfo(dao.source, dao.identifier);
+    const { 
+      data: spaceResult,
+      isLoading: isSpaceLoading,
+      error: spaceError 
+    } = useGraphQL(SPACE_QUERY, { id: dao.identifier });
+    const { 
+      data: proposalsResult,
+      isLoading: isProposalsLoading,
+      error: proposalsError 
+    } = useGraphQL(PROPOSALS_QUERY, { 
+      space: dao.identifier,
+      limit: spaceResult?.space?.proposalsCount,
+    });
+    
+    // Extract data from query results
+    const spaceData = spaceResult?.space;
+    const proposals = proposalsResult?.proposals || [];
+    
+    // Combine loading and error states
+    const isLoading = isSpaceLoading || isProposalsLoading || isDaoDataLoading;
+    const error = spaceError || proposalsError || daoDataError;
+    
+    // Calculate active proposals
+    const activeProposals = useMemo(() => {
+      return proposals.filter(proposal => proposal?.state === 'active').length;
+    }, [proposals]);
+    
     const hasSummary = daoData && daoData.summary;
     const timeString = hasSummary && daoData.summary.median_reading_time_per_proposal 
         ? daoData.summary.median_reading_time_per_proposal 
         : 100;
 
-    const monthlyMins = hasSummary && daoData.summary.average_reading_time_per_day ? parseTimeToMinutes(daoData.summary.average_reading_time_per_day) * 30 : 0
-    const monthlyTime = formatMinutesToTime(monthlyMins)
-
-    useEffect(() => {
-      const activeProposalCount = proposals.filter(proposal => proposal.state === 'active').length
-      setActiveProposals(activeProposalCount)
-    }, [proposals])
-  
-    useEffect(() => {
-      const fetchData = async () => {
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-          // Fetch space data
-          const spaceResult = await fetchGraphQL(SPACE_QUERY, { id: dao.identifier });
-          setSpaceData(spaceResult.space);
-
-          // Fetch proposals
-          const proposalsResult = await fetchGraphQL(PROPOSALS_QUERY, { 
-            space: dao.identifier,
-            limit: 10 // Limit to 10 proposals
-          });
-          setProposals(proposalsResult.proposals);
-        } catch (err) {
-          console.error('Error fetching DAO data:', err);
-          setError('Failed to load DAO data. Please try again later.');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchData();
-    }, [dao.identifier]);
+    const monthlyMins = hasSummary && daoData.summary.average_reading_time_per_day 
+      ? parseTimeToMinutes(daoData.summary.average_reading_time_per_day) * 30 
+      : 0;
+    const monthlyTime = formatMinutesToTime(monthlyMins);
 
     // Calculate normalized scores from 0-100 based on data
     const chartData = {
-      activeVotingWeight: 100,//spaceData?.followersCount ? Math.min(Math.round((spaceData.followersCount / 500000) * 100), 100) : 0,
-      activeVoters: spaceData?.proposalsCount ? Math.min(Math.round(spaceData?.followersCount / dao.totalMembers * 100), 100) : 0,
-      activityScore: hasSummary && daoData?.summary.total_proposals ? Math.min(Math.round(daoData.summary.total_proposals / 59 * 100), 100) : 50, // 1 hour (60 mins) is max
-      participationEffortScore: hasSummary && daoData.summary.median_reading_time_per_proposal ? Math.min(Math.round(monthlyMins / 600 * 100), 100) : 0,
+      activeVotingWeight: 100,
+      activeVoters: spaceData?.proposalsCount 
+        ? Math.min(Math.round(spaceData?.followersCount / dao.totalMembers * 100), 100) 
+        : 0,
+      activityScore: hasSummary && daoData?.summary.total_proposals 
+        ? Math.min(Math.round(daoData.summary.total_proposals / 59 * 100), 100) 
+        : 50, // 1 hour (60 mins) is max
+      participationEffortScore: hasSummary && daoData.summary.median_reading_time_per_proposal 
+        ? Math.min(Math.round(monthlyMins / 600 * 100), 100) 
+        : 0,
     }
     
     return (
@@ -132,15 +115,20 @@ export function DaoCard({ dao, logo, daoData }: DaoCardProps) {
             </CardTitle>
         </CardHeader>
         <div className="flex flex-row justify-between items-center">
-          {/* <ChartEngagement medianTimePerProposal={mins} angle={angle} /> */}
-          <ChartProps users={chartData.activeVotingWeight} proposals={chartData.activeVoters} timePerDay={chartData.activityScore} votes={chartData.participationEffortScore} totalTime={0} />
+          <ChartProps 
+            users={chartData.activeVotingWeight} 
+            proposals={chartData.activeVoters} 
+            timePerDay={chartData.activityScore} 
+            votes={chartData.participationEffortScore} 
+            totalTime={0} 
+          />
         </div>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          {/* {isLoading ? (
+          {isLoading ? (
             <div>Loading data...</div>
           ) : error ? (
-            <div className="text-red-500">{error}</div>
-          ) : ( */}
+            <div className="text-red-500">Failed to load DAO data</div>
+          ) : (
             <>
               <TooltipProvider>
                 <Tooltip>
@@ -200,7 +188,7 @@ export function DaoCard({ dao, logo, daoData }: DaoCardProps) {
                 </div>
               )}
             </>
-          {/* )} */}
+          )}
         </CardFooter>
       </Card>
       </NavLink>
