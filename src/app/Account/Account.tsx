@@ -1,20 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 import { useAccount } from 'wagmi'
 import { useEthos } from '@/contexts/ethos'
-import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { useState } from "react"
+import Ethos from "./components/Ethos"
 
 function Account() {
   const account = useAccount()
   const { ethos, setEthos } = useEthos();
-  const [draftEthos, setDraftEthos] = useState(ethos);  
   
-  const handleSave = () => {
-    setEthos(draftEthos);
+  const handleEthosSelect = (selectedEthos: string, isCustom: boolean, customText?: string) => {
+    // If it's a custom ethos, use the custom text
+    // Otherwise use the selected ethos title as the ethos
+    const newEthos = isCustom && customText ? customText : selectedEthos;
+    
+    setEthos(newEthos);
     toast("Ethos", {
-      description: `Ethos upadated`,
+      description: "Ethos updated successfully",
     });
   };
 
@@ -31,26 +32,10 @@ function Account() {
           Status: {account.status}
           </CardContent>
         </Card>
+        
         <Card className="mx-4 lg:mx-6">
-          <CardHeader>
-            <CardTitle>Ethos</CardTitle>
-          </CardHeader>
           <CardContent>
-          <div className="space-y-4">
-            {/* <h2 className="text-xl font-bold">Your Delegation Ethos</h2> */}
-            <p className="text-muted-foreground text-sm">
-              Define your guiding principles for DAO governance.
-            </p>
-            
-            <Textarea
-              value={draftEthos}
-              onChange={(e) => setDraftEthos(e.target.value)}
-              placeholder={ethos}
-              className="min-h-[150px]"
-            />
-            
-            <Button onClick={handleSave}>Save Ethos</Button>
-          </div>
+            <Ethos onSelect={handleEthosSelect} />
           </CardContent>
         </Card>
       </div>

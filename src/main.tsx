@@ -28,7 +28,7 @@ createRoot(document.getElementById('root')!).render(
       persistOptions={{ persister }}
     >
       <App />
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
     </PersistQueryClientProvider>
   </StrictMode>,
 )

@@ -22,6 +22,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import './App.css'
 // import { Digest } from "./app/Digest2/Digest"
 import Digest from "./app/Digest/Digest"
+import { AgentsProvider } from "./contexts/AgentContext"
 
 
 function Layout() {
@@ -77,10 +78,12 @@ function App() {
     <WagmiProvider config={config}>
         <RainbowKitProvider>
           <SubscriptionsProvider>
-            <EthosProvider>
-              <RouterProvider router={router} />
-              <Toaster />
-            </EthosProvider>
+            <AgentsProvider>
+              <EthosProvider>
+                <RouterProvider router={router} />
+                <Toaster />
+              </EthosProvider>
+            </AgentsProvider>
           </SubscriptionsProvider>
         </RainbowKitProvider>
     </WagmiProvider>

@@ -1,14 +1,14 @@
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, NavLink } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, ExternalLink, Mountain, FileSymlink } from "lucide-react";
+import { Bell, BellOff, ExternalLink, Mountain, FileSymlink, Star, Cpu } from "lucide-react";
 import { useSubscriptions } from '@/contexts/subscriptions';
 import { daoConfig, DaoConfigItem, MONTHLY_REPORT_DIRECTIVE, PROPOSALS_QUERY, SPACE_QUERY } from "@/lib/constants";
 import { toast } from "sonner";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { DrawerDialog } from "../Delegate/delegate";
+import { DrawerDialog } from "../Suggest/Suggest";
 import { formatNumber } from "@/lib/utils";
 import { useAccount } from "wagmi";
 import { Skeleton } from "@/components/ui/skeleton"
@@ -24,6 +24,9 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { filterProposalsByAge } from "@/lib/dao-utils";
+import { Delegate } from "../Delegate/Delegate";
+import Markdown from "react-markdown";
+import { useAgents } from "@/contexts/AgentContext";
 
 function DaoDashboard() {
   const { identifier } = useParams<{ identifier: string }>();
@@ -50,6 +53,7 @@ function DaoDashboard() {
 }
 
 function DashboardContent({ dao }: { dao: DaoConfigItem }) {
+  const { hasAgent } = useAgents();
   const { 
     isSubscribed,
     addSubscription,
@@ -58,6 +62,7 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
   const subscribed = isSubscribed(dao);
   const account = useAccount();
   const [insightExpanded, setInsightExpanded] = useState(false);
+  const [expandSummary, setExpandSummary] = useState(false);
   
   // Add pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -124,13 +129,13 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
   const handleSubscription = () => {
     if (subscribed) {
       removeSubscription(dao);
-      toast("Unsubscribed", {
-        description: `You've unsubscribed from ${dao.name}`,
+      toast("Removed from Watchlist", {
+        description: `You've removed ${dao.name} to the watchlist`,
       });
     } else {
       addSubscription(dao);
-      toast("Subscribed", {
-        description: `You've subscribed to ${dao.name}`,
+      toast("Added to Watchlist", {
+        description: `You've added ${dao.name} to the watchlist`,
       });
     }
   };
@@ -230,24 +235,27 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
               </CardDescription>
               <CardAction>
                 {account.isConnected ? (
-                  <Button
-                  variant="outline" 
-                  onClick={handleSubscription}
-                  title={subscribed ? "Unsubscribe" : "Subscribe"}
-                  className="flex items-center gap-2"
-                  >
-                  {subscribed ? (
-                    <>
-                    <BellOff className="h-4 w-4" />
-                    Unsubscribe
-                    </>
-                  ) : (
-                    <>
-                    <Bell className="h-4 w-4" />
-                    Subscribe
-                    </>
-                  )}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                    variant="outline" 
+                    onClick={handleSubscription}
+                    title={subscribed ? "Unsubscribe" : "Subscribe"}
+                    className="flex items-center gap-2"
+                    >
+                    {subscribed ? (
+                      <>
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        {/* Unsubscribe */}
+                      </>
+                    ) : (
+                      <>
+                      <Star className="h-4 w-4" />
+                      {/* Subscribe */}
+                      </>
+                    )}
+                    </Button>
+                    <Delegate dao={dao} />
+                  </div>
                 ) : (
                   <ConnectButton.Custom>
                     {({
@@ -259,8 +267,8 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                           onClick={openConnectModal}
                           className="flex items-center gap-2"
                         >
-                          <Bell className="h-4 w-4" />
-                          Subscribe
+                          <Star className="h-4 w-4" />
+                          {/* Subscribe */}
                         </Button>
                       );
                     }}
@@ -316,14 +324,14 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                         {spaceData?.votesCount ? formatNumber(spaceData.votesCount) : `${dao.votes || 0}m`}
                       </Badge>
                     </div>
-                    {spaceData?.network && (
+                    {/* {spaceData?.network && (
                       <div className="line-clamp-1 flex gap-2 font-medium">
                         Network
                         <Badge variant="outline">
                           {spaceData.network}
                         </Badge>
                       </div>
-                    )}
+                    )} */}
                   </div>
                   
                   {/* Right column - DAO About section */}
@@ -346,79 +354,88 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
             </CardFooter>
           </Card>
         </div>
+
+        {/* Monthly Digest Card */}
+        {hasAgent(dao) && (
+          <div className="px-4 lg:px-6">
+            <Card className="border shadow-sm gap-0 pt-4 pb-3 bg-muted/5">
+              <CardHeader className="pb-0">
+                <CardTitle className="text-sm flex items-center">
+                  <span className="bg-primary/10 p-1 rounded-md mr-2 flex items-center justify-center">
+                    <Cpu className="h-4 w-4 text-primary" />
+                  </span>
+                  Your Voting Agent Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <NavLink to="/account">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                  >
+                    Configure Ethos
+                  </Button>
+                </NavLink>
+              </CardContent>
+            </Card>
+          </div>
+        )}
         
         {/* Monthly Digest Card */}
-        <div className="px-4 lg:px-6">
-        <Card className="border shadow-sm gap-0 pt-4 pb-3 bg-muted/5">
-          <CardHeader className="pb-0">
-            <CardAction>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs h-6 px-2 flex items-center gap-1"
-                asChild
-              >
-                <a href={`/#/digest/overview?dao=${dao.name.toLowerCase()}`} target="_blank" rel="noopener noreferrer">
-                  <FileSymlink className="h-3 w-3" />
-                  Full Digest
-                </a>
-              </Button>
-            </CardAction>
-            <CardTitle className="text-sm flex items-center">
-              <span className="bg-primary/10 p-1 rounded-md mr-2 flex items-center justify-center">
-                <Mountain className="h-4 w-4 text-primary" />
-              </span>
-              DAO Monthly Digest
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {loadingSummary ? (
-              <div className="flex items-center justify-center py-4">
-                <Skeleton className="w-[300px] h-[20px] rounded-full" />
-              </div>
-            ) : daoSummary ? (
-              <div className="relative">
-                {/* Content container with line clamp instead of max-height */}
-                <div className={insightExpanded ? "text-sm leading-relaxed" : "text-sm leading-relaxed line-clamp-1"}>
-                  {/* <div 
-                    className={insightExpanded ? "text-sm leading-relaxed" : "text-sm leading-relaxed line-clamp-1"}
-                    dangerouslySetInnerHTML={{ __html: daoSummary }}
-                  /> */}
-                  {daoSummary}
-                </div>
-                
-                {/* Gradient overlay when collapsed - positioned relative to text */}
-                {!insightExpanded && (
-                  <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none" />
-                )}
-                
-                {/* Footer with Show more/less button - different layout based on expanded state */}
-                <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-                  {/* Only show the attribution when expanded */}
-                  {insightExpanded && (
-                    <span>Based on last month {latestProposals.length} new proposals</span>
-                  )}
-                  
-                  {/* Push button to right when collapsed, or position in normal flow when expanded */}
-                  <div className={insightExpanded ? "" : "ml-auto"}>
+        <div className="px-4 lg:px-6 text-sm">
+            <Card onClick={() => !expandSummary ? setExpandSummary(true) : null}>
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center">
+                  <span className="bg-primary/10 p-1 rounded-md mr-2 flex items-center justify-center">
+                    <Mountain className="h-4 w-4 text-primary" />
+                  </span>
+                  Monthly Digest
+                </CardTitle>
+                <CardAction >
+                  {daoSummary && daoSummary.length > 100 && (
                     <Button 
-                      variant="ghost" 
+                      variant="link" 
                       size="sm" 
-                      onClick={() => setInsightExpanded(!insightExpanded)}
-                      className="text-xs h-6 px-2"
+                      onClick={() => setExpandSummary(!expandSummary)} 
+                      className="text-xs h-6 px-2 flex items-center gap-1 text-muted-foreground"
                     >
-                      {insightExpanded ? "Show less" : "Show more"}
+                      {expandSummary ? "Show less" : "Show more"}
                     </Button>
+                  )}
+                </CardAction>
+              </CardHeader>
+              {!loadingSummary && daoSummary ? (
+                <CardContent>
+                  <div className="relative px-4">
+                    <div className={expandSummary ? "" : "max-h-[125px] overflow-hidden"}>
+                      <Markdown>{daoSummary}</Markdown>
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        className="text-xs h-6 mt-4 px-2 flex items-center gap-1"
+                        asChild
+                      >
+                        <a href={`/#/digest/monthly?dao=${dao.name.toLowerCase()}`}>
+                          <FileSymlink className="h-3 w-3" />
+                          Full Digest
+                        </a>
+                      </Button>
+                    </div>
+                    {!expandSummary && daoSummary.length > 100 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                    )}
                   </div>
+                </CardContent>
+              ) : loadingSummary ? (
+                <div className="flex items-center justify-center py-8">
+                <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
                 </div>
-              </div>
-            ) : (
-              <div className="text-muted-foreground text-sm py-2">
-                No information available to generate insights regarding last month.
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              ) : null
+            }
+            </Card>
         </div>
         
         {/* Proposals Table with Pagination */}
@@ -442,7 +459,7 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                 ) : proposalTableData.length === 0 ? (
                 <div>No proposals found</div>
                 ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto text-sm">
                   <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b">

@@ -12,6 +12,6 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['evident-werewolf-internal.ngrok-free.app']
+    allowedHosts: ['evident-werewolf-internal.ngrok-free.app', 'ce75-82-60-186-207.ngrok-free.app']
   }
 })

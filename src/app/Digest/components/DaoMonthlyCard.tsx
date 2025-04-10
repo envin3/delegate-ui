@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronRightIcon, BarChart3, Mountain } from "lucide-react";
@@ -10,9 +10,12 @@ import { useGraphQL } from "@/hooks/use-dao";
 import { filterProposalsByAge } from "@/lib/dao-utils";
 import { useAI } from "@/hooks/use-ai";
 import { formatNumber } from "@/lib/utils";
+import Markdown from "react-markdown";
+import { NavLink } from "react-router";
 
 export function DaoMonthlyCard({ dao }: { dao: any }) {
   const [expanded, setExpanded] = useState(false);
+  const [expandSummary, setExpandSummary] = useState(false);
   const { 
       data: spaceResult,
       isLoading: isSpaceLoading,
@@ -73,18 +76,24 @@ export function DaoMonthlyCard({ dao }: { dao: any }) {
   
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
-      <CardHeader className="pb-3">
-        <div className="flex items-center">
-          <Avatar className="h-12 w-12 mr-3">
-            <AvatarImage src={dao.logo} alt={dao.name} />
-            <AvatarFallback>{dao.name.substring(0, 2)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <CardTitle className="text-xl">{dao.name}</CardTitle>
-            <CardDescription>Monthly Activity Summary</CardDescription>
+      <NavLink 
+            key={dao.identifier} 
+            to={`/dao/${dao.identifier}`}
+            className="block"
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-center">
+            <Avatar className="h-12 w-12 mr-3">
+              <AvatarImage src={dao.logo} alt={dao.name} />
+              <AvatarFallback>{dao.name.substring(0, 2)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <CardTitle className="text-xl">{dao.name}</CardTitle>
+              <CardDescription>Monthly Activity Summary</CardDescription>
+            </div>
           </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
+      </NavLink>
       <CardContent className="pb-3">
         {dao.isLoading ? (
           <div className="space-y-2">
@@ -94,11 +103,49 @@ export function DaoMonthlyCard({ dao }: { dao: any }) {
           </div>
         ) : (
           <>
-            <div className="bg-muted/20 p-4 rounded-md mb-4">
-              <div className="flex items-start gap-2 mb-2">
-                <Mountain className="h-5 w-5 text-primary mt-0.5" />
-                <p className="text-sm leading-relaxed">{daoSummary}</p>
-              </div>
+            <div className="bg-muted/20 p-4 rounded-md mb-4 text-sm">
+              <Card onClick={() => !expandSummary ? setExpandSummary(true) : null}>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center">
+                    <span className="bg-primary/10 p-1 rounded-md mr-2 flex items-center justify-center">
+                      <Mountain className="h-4 w-4 text-primary" />
+                    </span>
+                    Monthly Digest
+                  </CardTitle>
+                  <CardAction >
+                    {daoSummary && daoSummary.length > 100 && (
+                      <Button 
+                        variant="link" 
+                        size="sm" 
+                        onClick={() => setExpandSummary(!expandSummary)} 
+                        className="text-xs h-6 px-2 flex items-center gap-1 text-muted-foreground"
+                      >
+                        {expandSummary ? "Show less" : "Show more"}
+                      </Button>
+                    )}
+                  </CardAction>
+                </CardHeader>
+                {!loadingSummary && daoSummary ? (
+                  <CardContent>
+                    <div className="relative px-4">
+                      <div className={expandSummary ? "" : "max-h-[125px] overflow-hidden"}>
+                        <Markdown>{daoSummary}</Markdown>
+                      </div>
+                      {!expandSummary && daoSummary.length > 100 && (
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+                      )}
+                    </div>
+                  </CardContent>
+                ) : loadingSummary ? (
+                  <div className="flex items-center justify-center py-8">
+                  <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  </div>
+                ) : null
+              }
+              </Card>
             </div>
             
             <div className="grid grid-cols-3 gap-4 mb-4">

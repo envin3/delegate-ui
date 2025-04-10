@@ -5,6 +5,7 @@ import {
   Trash2,
   Plus,
   type LucideIcon,
+  Cpu,
 } from "lucide-react"
 
 import {
@@ -26,6 +27,7 @@ import {
 import { NavLink } from "react-router"
 import { useSubscriptions } from "@/contexts/subscriptions"
 import { useCallback, useEffect, useState } from "react"
+import { useAgents } from "@/contexts/AgentContext"
 
 export function NavProjects({
   projects,
@@ -39,6 +41,7 @@ export function NavProjects({
   const { isMobile } = useSidebar()
   const { subscriptions } = useSubscriptions()
   const [currentPath, setCurrentPath] = useState(() => window.location.hash.substring(1))
+  const { hasAgent } = useAgents();
 
   // Create a memoized update function
   const updateCurrentPath = useCallback(() => {
@@ -85,7 +88,7 @@ export function NavProjects({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Subscriptions</SidebarGroupLabel>
+      <SidebarGroupLabel>Watchlist</SidebarGroupLabel>
       <SidebarMenu>
         {subscriptions.map((item) => {
         const targetPath = `/dao/${item.dao.identifier}`
@@ -107,6 +110,9 @@ export function NavProjects({
                   <Forward />
                 )}
                 <span>{item.dao.name}</span>
+                {hasAgent(item.dao) && (
+                  <Cpu className="text-sidebar-foreground/70" />
+                )}
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -115,7 +121,7 @@ export function NavProjects({
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <Plus className="text-sidebar-foreground/70" />
             <NavLink to="/explorer">
-              <span>Subscribe</span>
+              <span>Add</span>
             </NavLink>
           </SidebarMenuButton>
         </SidebarMenuItem>

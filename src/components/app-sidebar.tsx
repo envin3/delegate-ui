@@ -64,32 +64,14 @@ const data = {
       isActive: false,
     },
     {
-      title: "Trends",
-      url: "/trends",
-      icon: TrendingUpDown,
-    },
-    {
-      title: "Digest",
+      title: "Digests",
       url: "/digest",
       icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
+    },
+    {
+      title: "Trends",
+      url: "/explorer",
+      icon: TrendingUpDown,
     },
     // {
     //   title: "KnowledgeBase",
