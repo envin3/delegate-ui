@@ -14,7 +14,7 @@ interface AccountAgents {
 
 // Define the context shape
 interface AgentsContextType {
-  Agents: Agent[];
+  agents: Agent[];
   addAgent: (dao: DaoConfigItem) => void;
   removeAgent: (dao: DaoConfigItem) => void;
   hasAgent: (dao: DaoConfigItem) => boolean;
@@ -22,7 +22,7 @@ interface AgentsContextType {
 
 // Create the context with a default value
 const AgentsContext = createContext<AgentsContextType>({
-  Agents: [],
+  agents: [],
   addAgent: () => {},
   removeAgent: () => {},
   hasAgent: () => false,
@@ -115,7 +115,7 @@ export function AgentsProvider({ children }: { children: ReactNode }) {
 
   // Create the context value based on the current user's Agents
   const contextValue: AgentsContextType = {
-    Agents: currentAgents,
+    agents: currentAgents,
     addAgent,
     removeAgent,
     hasAgent

@@ -34,7 +34,7 @@ export function Delegate({ dao }: { dao: DaoConfigItem }) {
   const isDesktop = useIsMobile() === false
   const [error, setError] = useState<string | null>(null);
   const { addAgent, hasAgent, removeAgent } = useAgents();
-  const { addSubscription, removeSubscription } = useSubscriptions()
+  const { addSubscription } = useSubscriptions()
 
   useEffect(() => {
     async function fetchKmsAdapter() {
@@ -63,6 +63,9 @@ export function Delegate({ dao }: { dao: DaoConfigItem }) {
   const handleAddAgent = () => {
     addAgent(dao);
     addSubscription(dao);
+    toast("Added to Watchlist", {
+      description: `${dao.name} has been added to the watchlist`,
+    });
     toast("Agent started", {
       description: `You've started an Agent for ${dao.name}`,
     });
@@ -73,7 +76,6 @@ export function Delegate({ dao }: { dao: DaoConfigItem }) {
   const handleButtonClick = () => {
     if (hasAgent(dao)) {
       removeAgent(dao);
-      removeSubscription(dao);
       toast("Agent stopped", {
         description: `You've stopped an Agent for ${dao.name}`,
       });
@@ -154,6 +156,9 @@ export function Delegate({ dao }: { dao: DaoConfigItem }) {
             <Copy className="h-4 w-4" />
           </Button>
         </div>
+        <div className="flex w-full items-center gap-2 max-w-2xl">
+          To start using your Voting Agent please delegate to its address the governance token of this DAO.
+        </div>
       </div>
     );
   };
@@ -161,7 +166,11 @@ export function Delegate({ dao }: { dao: DaoConfigItem }) {
   if (isDesktop) {
     return (
       <>
-        <Button variant="outline" onClick={handleButtonClick}>
+        <Button 
+          variant="outline"
+          onClick={handleButtonClick}
+          title={hasAgent(dao) ? "Remove Agent" : "Add Agent"}
+        >
           {!hasAgent(dao) ? (
             <>
               <CircleFadingPlus className="h-4 w-4 mr-1" />

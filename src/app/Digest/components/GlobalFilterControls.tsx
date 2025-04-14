@@ -14,13 +14,13 @@ export function GlobalFilterControls({
         value={selectedDao || "all-daos"}
         onValueChange={(value) => setSelectedDao(value === "all-daos" ? null : value)}
       >
-        <SelectTrigger className="max-w-[180px]">
+        <SelectTrigger className="cursor-pointer max-w-[180px]">
           <SelectValue placeholder="Filter by DAO" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all-daos">All DAOs</SelectItem>
+          <SelectItem className="cursor-pointer" value="all-daos">All DAOs</SelectItem>
           {Object.keys(daoConfig).map((daoId) => (
-            <SelectItem key={daoId} value={daoId}>
+            <SelectItem className="cursor-pointer" key={daoId} value={daoId}>
               {daoConfig[daoId].name}
             </SelectItem>
           ))}

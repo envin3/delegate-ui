@@ -103,3 +103,37 @@ body {
     @apply !rounded-none !shadow-none;
   }
 }
+
+/* Countdown animation styles */
+.countdown-badge {
+  position: relative;
+}
+
+/* Tiny dot indicator for active countdown - continuous pulsing */
+.countdown-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #ef4444; /* Red color instead of currentColor */
+  animation: pulse-dot 1.5s infinite;
+}
+
+.animate-pulse-seconds {
+  animation: pulseText 0.5s ease;
+}
+
+@keyframes pulseText {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* New animation for the continuously pulsing dot */
+@keyframes pulse-dot {
+  0% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 0.8; transform: scale(1.2); }
+  100% { opacity: 0.2; transform: scale(0.8); }
+}

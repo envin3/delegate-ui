@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/sidebar"
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { getAddressName, shortenAddress } from "@/lib/address-utils";
+import { Button } from "./ui/button"
 
 export function NavUser({
   user,
@@ -45,6 +46,9 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   return (
+    <>
+    {/* <ConnectButton>
+    </ConnectButton> */}
     <ConnectButton.Custom>
       {({
         account,
@@ -91,26 +95,27 @@ export function NavUser({
               if (!connected) {
                 return (
                   <SidebarMenu>
-                  <SidebarMenuItem>
-                  <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton
-                    size="lg"
-                    onClick={openConnectModal}
-                    type="button"
-                    >
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarFallback className="rounded-lg">
-                      <CreditCard className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">Connect Wallet</span>
-                    </div>
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  </DropdownMenu>
-                  </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuButton
+                          size="lg"
+                          onClick={openConnectModal}
+                          type="button"
+                          className="cursor-pointer"
+                          >
+                            <Avatar className="h-8 w-8 rounded-lg">
+                              <AvatarFallback className="rounded-lg">
+                              <CreditCard className="h-4 w-4" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="grid flex-1 text-left text-sm leading-tight">
+                              <span className="truncate font-medium">Connect Wallet</span>
+                            </div>
+                          </SidebarMenuButton>
+                        </DropdownMenuTrigger>
+                      </DropdownMenu>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 );
               }
@@ -121,7 +126,7 @@ export function NavUser({
                     <DropdownMenuTrigger asChild>
                       <SidebarMenuButton
                         size="lg"
-                        className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                        className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                       >
                         <Avatar className="h-8 w-8 rounded-lg">
                           <AvatarImage src={account.ensAvatar} alt={displayName} />
@@ -178,26 +183,26 @@ export function NavUser({
                       <DropdownMenuSeparator /> */}
                       <DropdownMenuGroup>
                         <DropdownMenuItem asChild>
-                          <NavLink to="/account">
-                          <BadgeCheck className="h-4 w-4" />
-                          Account
+                          <NavLink to="/profile">
+                            <Button variant={"ghost"} size="sm" className="w-full justify-start">
+                              <BadgeCheck className="mr-2 h-4 w-4"/>
+                              Profile
+                            </Button>
                           </NavLink>
                         </DropdownMenuItem>
-                        {/* <DropdownMenuItem>
-                          <CreditCard />
-                          Billing
-                        </DropdownMenuItem> */}
                         <DropdownMenuItem>
-                          <Bell />
-                          Notifications
+                            <Button variant={"ghost"} size="sm" className="w-full justify-start">
+                            <Bell className="mr-2 h-4 w-4" />
+                            Notifications
+                            </Button>
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <button onClick={openAccountModal} type="button">
+                        <Button variant={"ghost"} size="sm" className="w-full justify-start" onClick={openAccountModal}>
+                          <LogOut className="mr-2 h-4 w-4" />
                           Logout
-                        </button>
+                        </Button>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -209,5 +214,6 @@ export function NavUser({
         )
       }}
     </ConnectButton.Custom>
+    </>
   )
 }

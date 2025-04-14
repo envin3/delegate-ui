@@ -23,8 +23,8 @@ export function SiteHeader() {
       return "DAO Dashboard"
     } else if (currentPath.includes('/explorer')) {
       return "Explorer"
-    } else if (currentPath.includes('/account')) {
-      return "Account"
+    } else if (currentPath.includes('/profile')) {
+      return "Profile"
     } else if (currentPath.includes('/digest')) {
       return "Digest"
     } else {

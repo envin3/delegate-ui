@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronDownIcon, ChevronRightIcon, FilterIcon, ChevronLeftIcon, ChevronRightIcon as ChevronNextIcon, Mountain } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon, FilterIcon, Mountain } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FILTERED_PROPOSAL_DIRECTIVE, PROPOSALS_QUERY, SPACE_QUERY } from "@/lib/constants";
@@ -367,25 +367,25 @@ export function DaoDailyCard({ dao }: { dao: any }) {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Status</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => updateStatusFilter("all")}>
-                      <div className="w-full flex items-center justify-between">
+                      <div className="cursor-pointer w-full flex items-center justify-between">
                         All
                         {filters.status === "all" && <span className="text-primary">✓</span>}
                       </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => updateStatusFilter("active")}>
-                      <div className="w-full flex items-center justify-between">
+                      <div className="cursor-pointer w-full flex items-center justify-between">
                         Active
                         {filters.status === "active" && <span className="text-primary">✓</span>}
                       </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => updateStatusFilter("pending")}>
-                      <div className="w-full flex items-center justify-between">
+                      <div className="cursor-pointer w-full flex items-center justify-between">
                         Pending
                         {filters.status === "pending" && <span className="text-primary">✓</span>}
                       </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => updateStatusFilter("closed")}>
-                      <div className="w-full flex items-center justify-between">
+                      <div className="cursor-pointer w-full flex items-center justify-between">
                         Closed
                         {filters.status === "closed" && <span className="text-primary">✓</span>}
                       </div>

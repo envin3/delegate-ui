@@ -11,7 +11,7 @@ export const STALE_TIME = 5 * 60 * 1000; // 30 minutes
 export const GC_TIME = 24 * 60 * 60 * 1000; // 24 hours
 export const PROPOSAL_FETCH_LIMIT_ALL = 2000; // Limit to 200 proposals
 
-export const DAVOS_RELAYER_ENDPOINT = 'https://34cf-82-60-186-207.ngrok-free.app'
+export const DAVOS_RELAYER_ENDPOINT = 'https://e1f2-82-60-186-207.ngrok-free.app'
 
 export const MONTHLY_REPORT_DIRECTIVE = 'Based on the following information, provide a concise summary (max 15 sentences) of the current state for non technical people and focus of the following DAO. Provide, if possible, a list of the most important topics that are being discussed in the DAO.'
 export const GLOBAL_REPORT_DIRECTIVE = 'Based on the following information, provide a concise summary (max 30 sentences) of the current DAO for non technical people. What is it about, why was it created, when was it created? Provide a reason why the user would want to join this DAO.';

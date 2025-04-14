@@ -4,7 +4,7 @@ import { useEthos } from '@/contexts/ethos'
 import { toast } from "sonner"
 import Ethos from "./components/Ethos"
 
-function Account() {
+function Profile() {
   const account = useAccount()
   const { ethos, setEthos } = useEthos();
   
@@ -24,7 +24,7 @@ function Account() {
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
         <Card className="mx-4 lg:mx-6">
           <CardHeader>
-            <CardTitle>Account Info</CardTitle>
+            <CardTitle>Profile Info</CardTitle>
           </CardHeader>
           <CardContent>
           Address: {account.address}
@@ -43,4 +43,4 @@ function Account() {
   )
 }
 
-export default Account
+export default Profile

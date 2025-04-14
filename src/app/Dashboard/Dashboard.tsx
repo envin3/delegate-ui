@@ -3,7 +3,7 @@ import { useParams, useNavigate, NavLink } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, BellOff, ExternalLink, Mountain, FileSymlink, Star, Cpu } from "lucide-react";
+import { ExternalLink, Mountain, FileSymlink, Cpu, Star } from "lucide-react";
 import { useSubscriptions } from '@/contexts/subscriptions';
 import { daoConfig, DaoConfigItem, MONTHLY_REPORT_DIRECTIVE, PROPOSALS_QUERY, SPACE_QUERY } from "@/lib/constants";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ import { filterProposalsByAge } from "@/lib/dao-utils";
 import { Delegate } from "../Delegate/Delegate";
 import Markdown from "react-markdown";
 import { useAgents } from "@/contexts/AgentContext";
+import { Countdown } from "@/components/ui/countdown";
 
 function DaoDashboard() {
   const { identifier } = useParams<{ identifier: string }>();
@@ -60,6 +61,7 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
     removeSubscription
   } = useSubscriptions();
   const subscribed = isSubscribed(dao);
+  const enabledAgent = hasAgent(dao);
   const account = useAccount();
   const [insightExpanded, setInsightExpanded] = useState(false);
   const [expandSummary, setExpandSummary] = useState(false);
@@ -127,10 +129,14 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
   });
 
   const handleSubscription = () => {
-    if (subscribed) {
+    if (subscribed && !enabledAgent) {
       removeSubscription(dao);
       toast("Removed from Watchlist", {
         description: `You've removed ${dao.name} to the watchlist`,
+      });
+    } else if (subscribed && enabledAgent) {
+      toast("Cannot remove from Watchlist", {
+        description: `You have an active Agent on ${dao.name}`,
       });
     } else {
       addSubscription(dao);
@@ -147,14 +153,19 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
     body: proposal.body,
     state: proposal.state,
     start: new Date(proposal.start * 1000).toLocaleDateString(),
-    end: new Date(proposal.end * 1000).toLocaleDateString(),
+    end: new Date(proposal.end * 1000).toLocaleString(),
+    endTimestamp: proposal.end,
     votes: proposal.votes,
     score: proposal.scores_total.toFixed(2)
   }));
   
   // Add pagination logic
   const totalPages = Math.max(1, Math.ceil(proposalTableData.length / proposalsPerPage));
-  
+
+  // Calculate the indices for pagination
+  const indexOfLastProposal = currentPage * proposalsPerPage;
+  const indexOfFirstProposal = indexOfLastProposal - proposalsPerPage;
+
   // Ensure current page is within bounds if data changes
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -162,10 +173,38 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
     }
   }, [proposalTableData.length, totalPages, currentPage]);
   
-  // Get current page proposals
-  const indexOfLastProposal = currentPage * proposalsPerPage;
-  const indexOfFirstProposal = indexOfLastProposal - proposalsPerPage;
-  const currentProposals = proposalTableData.slice(indexOfFirstProposal, indexOfLastProposal);
+  // Get current page proposals with vote status added
+  const currentProposals = useMemo(() => {
+    // First, filter out all non-active proposals
+    const inactiveProposals = proposalTableData
+      .filter(proposal => proposal.state.toLowerCase() !== 'active');
+
+    return proposalTableData.slice(indexOfFirstProposal, indexOfLastProposal).map((proposal, index) => {
+      let voteStatus: 'yes' | 'no' | 'not-voted' | null = null;
+      
+      if (proposal.state.toLowerCase() === 'active') {
+        // Active proposals have undefined vote status
+        voteStatus = null;
+      } else {
+        // Find the index of this proposal in the list of inactive proposals
+        const inactiveIndex = inactiveProposals.findIndex(p => p.id === proposal.id);
+        
+        // Only first 3 non-active proposals get "voted yes"
+        if (inactiveIndex <= 2) {
+          voteStatus = 'yes';
+        } else if (inactiveIndex == 3) {
+          voteStatus = 'no';
+        } else {
+          voteStatus = 'not-voted';
+        }
+      }
+      
+      return {
+        ...proposal,
+        voteStatus
+      };
+    });
+  }, [proposalTableData, indexOfFirstProposal, indexOfLastProposal]);
   
   // Handle page changes
   const handlePageChange = (pageNumber: number) => {
@@ -239,14 +278,14 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                     <Button
                     variant="outline" 
                     onClick={handleSubscription}
-                    title={subscribed ? "Unsubscribe" : "Subscribe"}
+                    title={subscribed ? "Unwatch" : "Watch"}
                     className="flex items-center gap-2"
                     >
                     {subscribed ? (
-                      <>
+                        <>
                         <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                         {/* Unsubscribe */}
-                      </>
+                        </>
                     ) : (
                       <>
                       <Star className="h-4 w-4" />
@@ -368,7 +407,7 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <NavLink to="/account">
+                <NavLink to="/profile">
                   <Button 
                     variant="outline" 
                     className="w-full"
@@ -465,49 +504,60 @@ function DashboardContent({ dao }: { dao: DaoConfigItem }) {
                     <tr className="border-b">
                     <th className="p-2 text-left">Title</th>
                     <th className="p-2 text-left">State</th>
-                    <th className="p-2 text-left">Start</th>
-                    <th className="p-2 text-left">End</th>
-                    <th className="p-2 text-left">Votes</th>
-                    {/* Only show Actions column if account is connected */}
+                    {/* <th className="p-2 text-left">Start</th> */}
+                    <th className="p-2 text-left">Voting Period End</th>
+                    {/* <th className="p-2 text-left">Votes</th> */}
+                    {/* Always show Actions column but only render content if not 'not-voted' */}
                     {account.address ? (
                       <th className="p-2 text-left">Actions</th>
+                    ) : null}
+                    {enabledAgent ? (
+                      <th className="p-2 text-left">Agent</th>
                     ) : null}
                     </tr>
                   </thead>
                   <tbody>
-                    {currentProposals.map((proposal) => (
-                    <tr key={proposal.id} className="border-b hover:bg-muted/50">
-                        <td className="p-2">
-                        {proposal.state.toLowerCase() === 'active' ? (
-                          <span className="font-bold">{proposal.title}</span>
-                        ) : (
-                          proposal.title
-                        )}
-                        </td>
-                      <td className="p-2">
-                      <Badge variant={getStateVariant(proposal.state)} className="text-sm">
-                        {proposal.state}
-                      </Badge>
-                      </td>
-                      <td className="p-2">
-                        <Badge variant="outline">
-                          {proposal.start}
-                        </Badge></td>
-                      <td className="p-2">
-                        <Badge variant="outline">
-                          {proposal.end}
-                        </Badge>
-                      </td>
-                      <td className="p-2">{proposal.votes}</td>
-                      {/* Only show Actions column if account is connected */}
-                      {account.address ? (
-                        <td className="p-2">
-                          <DrawerDialog proposal={proposal}/>
-                        </td>
-                      ): null}
-                    </tr>
-                    ))}
-                  </tbody>
+  {currentProposals.map((proposal) => (
+    <tr key={proposal.id} className="border-b hover:bg-muted/50">
+      <td className="p-2">
+        {proposal.state.toLowerCase() === 'active' ? (
+          <span className="font-bold">{proposal.title}</span>
+        ) : (
+          proposal.title
+        )}
+      </td>
+      <td className="p-2">
+        <Badge variant={getStateVariant(proposal.state)} className="text-sm">
+          {proposal.state}
+        </Badge>
+      </td>
+      <td className="p-2">
+        <Badge variant="outline">
+          {proposal.end}
+        </Badge>
+      </td>
+      {/* Always show Actions column but only render content if not 'not-voted' */}
+      {account.address ? (
+        <td className="p-2">
+          {proposal.voteStatus !== 'not-voted' && (
+            <DrawerDialog proposal={proposal} isAgentEnabled={enabledAgent} voteStatus={proposal.voteStatus}/>
+          )}
+        </td>
+      ) : null}
+      {enabledAgent ? (
+        <td className="p-2">
+          <Countdown
+            endDate={new Date(parseInt(proposal.endTimestamp) * 1000)}
+            compact={true}
+            hoursOffset={3}
+            proposalId={proposal.id}
+            voteStatus={proposal.voteStatus}
+          />
+        </td>
+      ) : null}
+    </tr>
+  ))}
+</tbody>
                   </table>
                   
                   {/* Shadcn Pagination Component */}

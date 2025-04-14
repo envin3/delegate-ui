@@ -41,7 +41,33 @@ export function NavProjects({
   const { isMobile } = useSidebar()
   const { subscriptions } = useSubscriptions()
   const [currentPath, setCurrentPath] = useState(() => window.location.hash.substring(1))
-  const { hasAgent } = useAgents();
+  const { hasAgent, agents } = useAgents();
+
+  // Get unique DAOs from both subscriptions and agents
+  const mergedDAOs = useCallback(() => {
+    const daoMap = new Map();
+    
+    // Add subscriptions to the map
+    subscriptions.forEach(sub => {
+      daoMap.set(sub.dao.identifier, sub.dao);
+    });
+    
+    // Add agents' DAOs to the map (this won't create duplicates due to Map's unique keys)
+    if (agents) {
+      agents.forEach(agent => {
+        if (agent.dao && !daoMap.has(agent.dao.identifier)) {
+          daoMap.set(agent.dao.identifier, agent.dao);
+        }
+      });
+    }
+    
+    // Convert to array and sort alphabetically by name
+    return Array.from(daoMap.values())
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [subscriptions, agents]);
+
+  // Get the merged unique DAOs
+  const activeOrWatchedDAOs = mergedDAOs();
 
   // Create a memoized update function
   const updateCurrentPath = useCallback(() => {
@@ -90,27 +116,27 @@ export function NavProjects({
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Watchlist</SidebarGroupLabel>
       <SidebarMenu>
-        {subscriptions.map((item) => {
-        const targetPath = `/dao/${item.dao.identifier}`
+        {activeOrWatchedDAOs.map((item) => {
+        const targetPath = `/dao/${item.identifier}`
         const isActive = currentPath === targetPath
         return (
-          <SidebarMenuItem key={item.dao.name}>
+          <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
               <NavLink 
-                key={item.dao.identifier} 
-                to={`/dao/${item.dao.identifier}`}
+                key={item.identifier} 
+                to={`/dao/${item.identifier}`}
                 className={isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""}
               >
-                {item.dao.logo ? (
+                {item.logo ? (
                   <img
-                    src={item.dao.logo}
+                    src={item.logo}
                     className="h-4 w-4 rounded-full"
                   />
                 ) : (
                   <Forward />
                 )}
-                <span>{item.dao.name}</span>
-                {hasAgent(item.dao) && (
+                <span>{item.name}</span>
+                {hasAgent(item) && (
                   <Cpu className="text-sidebar-foreground/70" />
                 )}
               </NavLink>

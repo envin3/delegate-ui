@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { DAVOS_RELAYER_ENDPOINT } from "./constants";
-import { HDKey, generateMnemonic, english, mnemonicToAccount, deriveAccount, hdKeyToAccount } from 'viem/accounts';
+import { HDKey, hdKeyToAccount } from 'viem/accounts';
 import { toHex, hexToBytes } from "viem";
 
 export function cn(...inputs: ClassValue[]) {

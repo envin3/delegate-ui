@@ -11,7 +11,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { Outlet, createHashRouter, RouterProvider, Navigate } from 'react-router'
 
 import Explorer from './app/Explorer/Explorer'
-import Account from './app/Account/Account'
+import Profile from './app/Profile/Profile'
 
 
 import Dashboard from "./app/Dashboard/Dashboard"
@@ -66,8 +66,8 @@ const router = createHashRouter([
         element: <Digest />
       },
       {
-        path: "account",
-        element: <Account />
+        path: "profile",
+        element: <Profile />
       }
     ]
   }
